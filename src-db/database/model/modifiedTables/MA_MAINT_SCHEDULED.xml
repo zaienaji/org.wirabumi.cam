@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE MA_MAINT_SCHEDULED">
+    <table name="MA_MAINT_SCHEDULED" primaryKey="MA_MAINT_SCHEDULED_KEY">
+      <column name="EM_CAM_ASSET_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_FREQUENCY" primaryKey="false" required="false" type="VARCHAR" size="60" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_FREQUENCYAMT" primaryKey="false" required="true" type="DECIMAL" autoIncrement="false">
+        <default><![CDATA[1]]></default>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_NEXTDUE" primaryKey="false" required="false" type="TIMESTAMP" size="7" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ALERTPERIOD" primaryKey="false" required="true" type="DECIMAL" autoIncrement="false">
+        <default><![CDATA[7]]></default>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_STARTDATE" primaryKey="false" required="false" type="TIMESTAMP" size="7" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <foreign-key foreignTable="A_ASSET" name="EM_CAM_MASCHEDASSET_FK">
+        <reference local="EM_CAM_ASSET_ID" foreign="A_ASSET_ID"/>
+      </foreign-key>
+    </table>
+  </database>

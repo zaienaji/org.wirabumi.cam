@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE A_ASSET_GROUP">
+    <table name="A_ASSET_GROUP" primaryKey="A_ASSET_GROUP_KEY">
+      <column name="EM_CAM_PARENT_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <foreign-key foreignTable="A_ASSET_GROUP" name="EM_CAM_ASSETGROUP_PARENT">
+        <reference local="EM_CAM_PARENT_ID" foreign="A_ASSET_GROUP_ID"/>
+      </foreign-key>
+    </table>
+  </database>

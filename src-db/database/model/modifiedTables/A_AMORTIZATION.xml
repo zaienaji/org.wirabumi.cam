@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE A_AMORTIZATION">
+    <table name="A_AMORTIZATION" primaryKey="A_AMORTIZATION_KEY">
+      <column name="EM_CAM_PROCESSING" primaryKey="false" required="true" type="VARCHAR" size="60" autoIncrement="false">
+        <default><![CDATA[N]]></default>
+        <onCreateDefault/>
+      </column>
+    </table>
+  </database>

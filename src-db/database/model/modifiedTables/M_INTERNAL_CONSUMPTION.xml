@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE M_INTERNAL_CONSUMPTION">
+    <table name="M_INTERNAL_CONSUMPTION" primaryKey="M_INTERNAL_CONSUMPTION_KEY">
+      <column name="EM_CAM_WORKORDER_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ISASSETPARTCONSUMPTION" primaryKey="false" required="true" type="CHAR" size="1" autoIncrement="false">
+        <default><![CDATA[N]]></default>
+        <onCreateDefault/>
+      </column>
+      <foreign-key foreignTable="CAM_WORKORDER" name="EM_CAM_IC_WO">
+        <reference local="EM_CAM_WORKORDER_ID" foreign="CAM_WORKORDER_ID"/>
+      </foreign-key>
+    </table>
+  </database>

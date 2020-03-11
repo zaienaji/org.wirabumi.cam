@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE A_ASSET">
+    <table name="A_ASSET" primaryKey="A_ASSET_KEY">
+      <column name="EM_CAM_LIFESPAN" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_LIFETODATE" primaryKey="false" required="false" type="VARCHAR" size="60" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_LOCATION_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_METERGROUP_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ROTATINGITEM_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ISASSETTEMPLATE" primaryKey="false" required="true" type="CHAR" size="1" autoIncrement="false">
+        <default><![CDATA[N]]></default>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_CUSTODIAN_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ASSETTYPE" primaryKey="false" required="false" type="VARCHAR" size="60" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_VENDOR_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_MANUFACTURER_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_INSTALLDATE" primaryKey="false" required="false" type="TIMESTAMP" size="7" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_PURCHASEPRICE" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_REPLACEMENTCOST" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_PURCHASEORDER_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_TOTALCOST" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_YEARTODATECOST" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_BUDGETTED" primaryKey="false" required="false" type="DECIMAL" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_ISASSETUP" primaryKey="false" required="true" type="CHAR" size="1" autoIncrement="false">
+        <default><![CDATA[Y]]></default>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_TOTALDOWNTIME" primaryKey="false" required="true" type="DECIMAL" autoIncrement="false">
+        <default><![CDATA[0]]></default>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_COSTCENTER_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <column name="EM_CAM_PARENT_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <foreign-key foreignTable="C_COSTCENTER" name="EM_CAM_ASSET_COSTCENTER">
+        <reference local="EM_CAM_COSTCENTER_ID" foreign="C_COSTCENTER_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="A_ASSET" name="EM_CAM_ASSETPARENT_FK">
+        <reference local="EM_CAM_PARENT_ID" foreign="A_ASSET_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="C_BPARTNER" name="EM_CAM_CUSTODIAN_FK">
+        <reference local="EM_CAM_CUSTODIAN_ID" foreign="C_BPARTNER_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="CAM_LOCATION" name="EM_CAM_LOCATION_FK">
+        <reference local="EM_CAM_LOCATION_ID" foreign="CAM_LOCATION_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="C_BPARTNER" name="EM_CAM_MANUFACTURER_FK">
+        <reference local="EM_CAM_MANUFACTURER_ID" foreign="C_BPARTNER_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="CAM_METERGROUP" name="EM_CAM_METERGROUP_FK">
+        <reference local="EM_CAM_METERGROUP_ID" foreign="CAM_METERGROUP_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="C_ORDER" name="EM_CAM_PO_FK">
+        <reference local="EM_CAM_PURCHASEORDER_ID" foreign="C_ORDER_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="M_PRODUCT" name="EM_CAM_ROTATINGITEM_FK">
+        <reference local="EM_CAM_ROTATINGITEM_ID" foreign="M_PRODUCT_ID"/>
+      </foreign-key>
+      <foreign-key foreignTable="C_BPARTNER" name="EM_CAM_VENDOR_FK">
+        <reference local="EM_CAM_VENDOR_ID" foreign="C_BPARTNER_ID"/>
+      </foreign-key>
+      <check name="EM_CAM_ISASSETTEMPLATE_CHK"><![CDATA[EM_CAM_ISASSETTEMPLATE IN ('Y', 'N')]]></check>
+      <check name="EM_CAM_ISASSETUP_CHK"><![CDATA[EM_CAM_ISASSETUP IN ('Y', 'N')]]></check>
+    </table>
+  </database>

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+  <database name="TRIGGER CAM_AMORTIZATIONLINE_TRG">
+    <trigger name="CAM_AMORTIZATIONLINE_TRG" table="A_AMORTIZATIONLINE" fires="before" insert="true" update="false" delete="false" foreach="row">
+      <body><![CDATA[declare
+	
+	v_line NUMBER;
+	v_seqnoasset NUMBER;
+        
+BEGIN
+    
+	
+    IF AD_isTriggerEnabled()='N' THEN RETURN;
+    END IF;
+
+    IF INSERTING then
+    	
+    	--line, seq_no_asset
+    	if :new.line is null then
+    		select max(line) into v_line from a_amortizationline where a_amortization_id=:new.a_amortization_id;
+    		if v_line is null then v_line=10;
+    		else v_line=v_line+10;
+    		end if;
+    		:new.line=v_line;
+    	end if;
+    	
+    	if :new.seq_no_asset is null then
+    		select max(seq_no_asset) into v_seqnoasset from a_amortizationline where a_asset_id=:new.a_asset_id;
+    		if v_seqnoasset is null then v_seqnoasset=10;
+    		else v_seqnoasset=v_seqnoasset+10;
+    		end if;
+    		:new.seq_no_asset=v_seqnoasset;
+    	end if;
+    	
+    END IF;
+ 
+END CAM_AMORTIZATIONLINE_TRG
+]]></body>
+    </trigger>
+  </database>

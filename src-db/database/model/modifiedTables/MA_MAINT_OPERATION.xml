@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+  <database name="MODIFIED TABLE MA_MAINT_OPERATION">
+    <table name="MA_MAINT_OPERATION" primaryKey="MA_MAINT_OPERATION_KEY">
+      <column name="EM_CAM_PARENT_ID" primaryKey="false" required="false" type="VARCHAR" size="32" autoIncrement="false">
+        <default/>
+        <onCreateDefault/>
+      </column>
+      <foreign-key foreignTable="MA_MAINT_OPERATION" name="EM_CAM_MAINTTASK_PARENT">
+        <reference local="EM_CAM_PARENT_ID" foreign="MA_MAINT_OPERATION_ID"/>
+      </foreign-key>
+    </table>
+  </database>
