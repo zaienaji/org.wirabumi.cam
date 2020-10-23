@@ -25,13 +25,11 @@ import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.hibernate.Query;
 import org.hibernate.criterion.Restrictions;
 import org.openbravo.advpaymentmngt.utility.FIN_Utility;
 import org.openbravo.base.exception.OBException;
@@ -39,7 +37,6 @@ import org.openbravo.base.provider.OBProvider;
 import org.openbravo.dal.core.OBContext;
 import org.openbravo.dal.service.OBCriteria;
 import org.openbravo.dal.service.OBDal;
-import org.openbravo.dal.service.OBQuery;
 import org.openbravo.database.ConnectionProvider;
 import org.openbravo.erpCommon.utility.OBDateUtils;
 import org.openbravo.erpCommon.utility.OBError;
@@ -216,8 +213,9 @@ public class AssetLinearDepreciationMethodProcess extends DalBaseProcess {
     		(annualDepreciation.doubleValue()<0 ||
     				(uselifeYears.doubleValue()<0 && (YEAR.equals(amortizationFrequency))) ||
     				(uselifeMonths.doubleValue()<0 && (MONTH.equals(amortizationFrequency))) )) {
-    	if (annualDepreciation.doubleValue()<0)
-    	msg.setType("Error");
+    	if (annualDepreciation.doubleValue()<0) {
+        msg.setType("Error");
+      }
         msg.setTitle(OBMessageUtils.messageBD("Error"));
         msg.setMessage(String.format(OBMessageUtils.messageBD("ASSET_MANDATORY_POSSITIVE"),
             OBMessageUtils.messageBD("ASSET_USABLE_LIFE_YEARS")+" "+OBMessageUtils.messageBD("ASSET_ANNUAL_DEPRECIATION")));
@@ -369,11 +367,12 @@ public class AssetLinearDepreciationMethodProcess extends DalBaseProcess {
     int jumlahbulandepresiasi=0;
     
     if (uselifeYears==null || uselifeYears.compareTo(BigDecimal.ZERO)==0){
-    	if (uselifeMonths!=null && uselifeMonths.compareTo(BigDecimal.ZERO)==0)
-    		jumlahbulandepresiasi=uselifeMonths.intValue();
+    	if (uselifeMonths!=null && uselifeMonths.compareTo(BigDecimal.ZERO)==0) {
+        jumlahbulandepresiasi=uselifeMonths.intValue();
+      }
+    } else {
+      jumlahbulandepresiasi=uselifeYears.intValue()*12;
     }
-    else
-    	jumlahbulandepresiasi=uselifeYears.intValue()*12;
     Calendar calendar = Calendar.getInstance();
     calendar.setTime(startDate);
     calendar.add(Calendar.MONTH, jumlahbulandepresiasi);
@@ -658,31 +657,27 @@ public class AssetLinearDepreciationMethodProcess extends DalBaseProcess {
    */
   private AmortizationLine getAmortizationLine(Asset asset, Date startDate, Date endDate)
       throws OBException {
-    StringBuilder whereClause = new StringBuilder();
-    final List<Object> parameters = new ArrayList<Object>();
-    whereClause.append(" as aml join aml.amortization as am ");
-    whereClause.append(" where aml.asset.id = ? ");
-    if (startDate != null) {
-      whereClause.append("       and am.startingDate = ?");
+    
+    OBCriteria<AmortizationLine> resultCriteria = OBDal.getInstance().createCriteria(AmortizationLine.class, "amortizationLine");
+    resultCriteria.createAlias("amortizationLine.amortization", "amortization");
+    
+    resultCriteria.add(Restrictions.eq(AmortizationLine.PROPERTY_ASSET, asset));
+    
+    if (startDate!=null) {
+      resultCriteria.add(Restrictions.eq("amortization."+Amortization.PROPERTY_STARTINGDATE, startDate));
     }
-    whereClause.append("       and am.endingDate = ?");
-    final OBQuery<AmortizationLine> obq = OBDal.getInstance().createQuery(AmortizationLine.class,
-        whereClause.toString());
-    obq.setFilterOnReadableOrganization(false);
-    parameters.add(asset.getId());
-    if (startDate != null) {
-      parameters.add(startDate);
+    
+    if (endDate!=null) {
+      resultCriteria.add(Restrictions.eq("amortization."+Amortization.PROPERTY_ENDINGDATE, endDate));
     }
-    parameters.add(endDate);
-    obq.setParameters(parameters);
-    List<AmortizationLine> amortizationLineList = obq.list();
-    if (amortizationLineList.size() == 0) {
+    
+    List<AmortizationLine> results = resultCriteria.list();
+    
+    if (results.size()==0) {
       return null;
-    } else if (amortizationLineList.size() > 1) {
-      throw new OBException("More than one amortization line exist from " + startDate.toString()
-          + " to " + endDate.toString() + " for " + asset.getName() + " asset");
     }
-    return amortizationLineList.get(0);
+    
+    return results.get(0);
   }
 
   /**
@@ -823,17 +818,19 @@ public class AssetLinearDepreciationMethodProcess extends DalBaseProcess {
    *         is no amortization line related to the given asset.
    */
   private Long getMaxSeqNoAsset(Asset asset) {
-    StringBuilder hql = new StringBuilder();
-    hql.append(" select coalesce(max(al.sEQNoAsset), 0) as maxSeqNoAsset ");
-    hql.append(" from FinancialMgmtAmortizationLine as al where al.asset.id = ? ");
-    Query query = OBDal.getInstance().getSession().createQuery(hql.toString());
-    query.setString(0, asset.getId());
-    for (Object obj : query.list()) {
-      if (obj != null) {
-        return (Long) obj;
-      }
+    
+    OBCriteria<AmortizationLine> amortizationLineCriteria = OBDal.getInstance().createCriteria(AmortizationLine.class);
+    amortizationLineCriteria.add(Restrictions.eq(AmortizationLine.PROPERTY_ASSET, asset));
+    amortizationLineCriteria.addOrderBy(AmortizationLine.PROPERTY_SEQNOASSET, false);
+    amortizationLineCriteria.setMaxResults(1);
+    
+    List<AmortizationLine> results = amortizationLineCriteria.list();
+    
+    if (results.size()==0) {
+      return 0l;
     }
-    return 0l;
+    
+    return results.get(0).getSEQNoAsset();
   }
 
   /**
@@ -845,17 +842,18 @@ public class AssetLinearDepreciationMethodProcess extends DalBaseProcess {
    *         0 if there is no amortization line related to the given amortization.
    */
   private Long getMaxLineNo(Amortization amortization) {
-    StringBuilder hql = new StringBuilder();
-    hql.append(" select coalesce(max(al.lineNo), 0) as maxSeqNoAsset ");
-    hql.append(" from FinancialMgmtAmortizationLine as al where al.amortization.id = ? ");
-    Query query = OBDal.getInstance().getSession().createQuery(hql.toString());
-    query.setString(0, (String) amortization.getId());
-    for (Object obj : query.list()) {
-      if (obj != null) {
-        return (Long) obj;
-      }
+    OBCriteria<AmortizationLine> resultCriteria = OBDal.getInstance().createCriteria(AmortizationLine.class);
+    resultCriteria.add(Restrictions.eq(AmortizationLine.PROPERTY_AMORTIZATION, amortization));
+    resultCriteria.addOrderBy(AmortizationLine.PROPERTY_LINENO, false);
+    resultCriteria.setMaxResults(1);
+    
+    List<AmortizationLine> results = resultCriteria.list();
+    
+    if (results.size()==0) {
+      return 0l;
     }
-    return 0l;
+    
+    return results.get(0).getLineNo();
   }
 
 }
