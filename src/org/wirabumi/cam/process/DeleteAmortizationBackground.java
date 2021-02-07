@@ -9,13 +9,13 @@ import org.wirabumi.cam.utility.CamUtility;
 
 public class DeleteAmortizationBackground extends DalBaseProcess {
 
-	@Override
-	protected void doExecute(ProcessBundle bundle) throws Exception {
-		
-		List<Amortization> amortizationList = CamUtility.getProcessedNotPostedAmortization();
-		CamUtility.unprocessAmortizations(amortizationList);
-		CamUtility.deleteUnPorcessedAmortization();
+  @Override
+  protected void doExecute(ProcessBundle bundle) throws Exception {
 
-	}
+    List<Amortization> amortizationList = CamUtility.getProcessedNotPostedAmortization();
+    CamUtility.unprocessAmortizations(amortizationList);
+    CamUtility.deleteUnPorcessedAmortization();
+
+  }
 
 }

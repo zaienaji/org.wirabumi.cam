@@ -13,32 +13,32 @@ import org.openbravo.erpCommon.ad_forms.DocInvoice;
 import org.openbravo.erpCommon.ad_forms.Fact;
 
 public abstract class DocWorkOrderTemplate {
-	  static Logger log4jDocInventory = Logger.getLogger(DocInvoice.class);
+  static Logger log4jDocInventory = Logger.getLogger(DocInvoice.class);
 
-	  /**
-	   * Constructor
-	   * 
-	   */
-	  public DocWorkOrderTemplate() {
-	  }
+  /**
+   * Constructor
+   * 
+   */
+  public DocWorkOrderTemplate() {
+  }
 
-	  /**
-	   * Create Facts (the accounting logic) for MMI.
-	   * 
-	   * <pre>
-	   *  Inventory
-	   *      Inventory       DR      CR
-	   *      InventoryDiff   DR      CR   (or Charge)
-	   * </pre>
-	   * 
-	   * @param as
-	   *          account schema
-	   * @return Fact
-	   */
-	  public abstract Fact createFact(DocWorkOrder docWorkOrder, AcctSchema as,
-	      ConnectionProvider conn, Connection con, VariablesSecureApp vars) throws ServletException;
+  /**
+   * Create Facts (the accounting logic) for MMI.
+   * 
+   * <pre>
+   *  Inventory
+   *      Inventory       DR      CR
+   *      InventoryDiff   DR      CR   (or Charge)
+   * </pre>
+   * 
+   * @param as
+   *          account schema
+   * @return Fact
+   */
+  public abstract Fact createFact(DocWorkOrder docWorkOrder, AcctSchema as, ConnectionProvider conn,
+      Connection con, VariablesSecureApp vars) throws ServletException;
 
-	  public String getServletInfo() {
-	    return "Servlet for the accounting";
-	  } // end of getServletInfo() method
-	}
+  public String getServletInfo() {
+    return "Servlet for the accounting";
+  } // end of getServletInfo() method
+}

@@ -11,14 +11,14 @@ import org.wirabumi.cam.utility.CamUtility;
 
 public class GenerateAmortizationBackground extends DalBaseProcess {
 
-	@Override
-	protected void doExecute(ProcessBundle bundle) throws Exception {
-		OBCriteria<Asset> assetC = OBDal.getInstance().createCriteria(Asset.class);
-		List<Asset> assetList = assetC.list();
-		for (Asset asset : assetList) {
-			System.out.println("asset id "+asset.getId()+" name "+asset.getName());
-			CamUtility.generateAssetAmortization(asset);
-		}
-	}
+  @Override
+  protected void doExecute(ProcessBundle bundle) throws Exception {
+    OBCriteria<Asset> assetC = OBDal.getInstance().createCriteria(Asset.class);
+    List<Asset> assetList = assetC.list();
+    for (Asset asset : assetList) {
+      System.out.println("asset id " + asset.getId() + " name " + asset.getName());
+      CamUtility.generateAssetAmortization(asset);
+    }
+  }
 
 }
