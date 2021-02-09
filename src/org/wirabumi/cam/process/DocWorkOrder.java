@@ -39,6 +39,13 @@ import org.wirabumi.cam.WorkOrderAsset;
 
 public class DocWorkOrder extends AcctServer {
 
+  // TODO implement GL journal for sale on asset
+  // TODO implement GL journal to flip accumulated depreciation (debt) on asset (credit)
+  // TODO implement GL journal for asset movement case
+  // TODO implement GL journal for absorption cost from internal consumption to asset
+  // TODO implement GL journal for absorption cost from purchase invoice to asset
+  // TODO implement GL journal for absorption cost from employee expense/salary to asset
+
   static Logger log4jDocWorkOrder = Logger.getLogger(DocWorkOrder.class);
   private String SeqNo = "0";
 
@@ -111,8 +118,9 @@ public class DocWorkOrder extends AcctServer {
     // Select specific definition
     String strClassname = DocWorkOrderData.selectTemplateDoc(conn, as.m_C_AcctSchema_ID,
         DocumentType);
-    if (strClassname.equals(""))
+    if (strClassname.equals("")) {
       strClassname = DocWorkOrderData.selectTemplate(conn, as.m_C_AcctSchema_ID, AD_Table_ID);
+    }
     if (!strClassname.equals("")) {
       try {
         DocWorkOrderTemplate newTemplate = (DocWorkOrderTemplate) Class.forName(strClassname)
@@ -143,37 +151,47 @@ public class DocWorkOrder extends AcctServer {
     for (int i = 0; i < p_lines.length; i++) {
       DocLine line = p_lines[i];
       WorkOrderAsset woA = OBDal.getInstance().get(WorkOrderAsset.class, line.m_TrxLine_ID);
-      if (woA == null)
+      if (woA == null) {
         continue; // invalid work order asset record;
+      }
 
       boolean supportedAction = woA.isDisposed() || woA.isAssetmovement();
-      if (!supportedAction)
+      if (!supportedAction) {
         continue; // sekarang ini hanya asset disposal dan movement saja yg di support.
+      }
 
       // do post logic here
       Asset asset = woA.getAsset();
-      if (asset == null)
+      if (asset == null) {
         continue; // no asset to be processed;
+      }
       line.m_A_Asset_ID = asset.getId();
       Currency costCurrency = asset.getCurrency();
-      if (costCurrency == null)
+      if (costCurrency == null) {
         continue; // has no currency
-      if (asset.isFullyDepreciated())
+      }
+      if (asset.isFullyDepreciated()) {
         continue; // asset has no book value;
-      if (!asset.isDepreciate())
+      }
+      if (!asset.isDepreciate()) {
         continue; // non financial asset;
+      }
       BigDecimal hargaperolehan = asset.getAssetValue();
-      if (hargaperolehan == null || hargaperolehan.equals(BigDecimal.ZERO))
+      if (hargaperolehan == null || hargaperolehan.equals(BigDecimal.ZERO)) {
         continue; // has no asset value;
+      }
       BigDecimal akumulasidepresiasi = asset.getDepreciatedValue();
-      if (akumulasidepresiasi == null)
+      if (akumulasidepresiasi == null) {
         akumulasidepresiasi = BigDecimal.ZERO;
+      }
       BigDecimal prevdepresiasi = asset.getPreviouslyDepreciatedAmt();
-      if (prevdepresiasi == null)
+      if (prevdepresiasi == null) {
         prevdepresiasi = BigDecimal.ZERO;
+      }
       BigDecimal nilaibuku = hargaperolehan.subtract(akumulasidepresiasi).subtract(prevdepresiasi);
-      if (nilaibuku.equals(BigDecimal.ZERO))
+      if (nilaibuku.equals(BigDecimal.ZERO)) {
         continue; // have no book value;
+      }
 
       String costs = nilaibuku.toString();
       BigDecimal b_Costs = nilaibuku;
@@ -270,18 +288,20 @@ public class DocWorkOrder extends AcctServer {
         DocLine lineCostcenterLama = new DocLine(line.p_DocumentType, line.m_TrxHeader_ID,
             line.m_TrxLine_ID);
         lineCostcenterLama.copyInfo(line);
-        if (woA.getOldCostCenter() != null)
+        if (woA.getOldCostCenter() != null) {
           lineCostcenterLama.m_C_Costcenter_ID = woA.getOldCostCenter().getId();
-        else
+        } else {
           lineCostcenterLama.m_C_Costcenter_ID = null;
+        }
 
         DocLine lineCostcenterBaru = new DocLine(line.p_DocumentType, line.m_TrxHeader_ID,
             line.m_TrxLine_ID);
         lineCostcenterBaru.copyInfo(line);
-        if (woA.getCostCenter() != null)
+        if (woA.getCostCenter() != null) {
           lineCostcenterBaru.m_C_Costcenter_ID = woA.getCostCenter().getId();
-        else
+        } else {
           lineCostcenterBaru.m_C_Costcenter_ID = null;
+        }
 
         // ayat jurnal ke-1.
         log4jDocWorkOrder
@@ -338,8 +358,9 @@ public class DocWorkOrder extends AcctServer {
     // TODO seharusnya fix asset melekat di asset accounting, sementara pakai preference dan
     // hardcoded.
     String fixedAssetAccountKey = Utility.getPreference(vars, "FixedAssetAccountKey", null);
-    if (StringUtils.isEmpty(fixedAssetAccountKey))
+    if (StringUtils.isEmpty(fixedAssetAccountKey)) {
       fixedAssetAccountKey = "Fixed Asset";
+    }
 
     OBCriteria<ElementValue> evCriteria = OBDal.getInstance().createCriteria(ElementValue.class);
     evCriteria.add(Restrictions.eq(ElementValue.PROPERTY_NAME, fixedAssetAccountKey));
@@ -347,13 +368,15 @@ public class DocWorkOrder extends AcctServer {
     evCriteria.setFilterOnReadableClients(true);
     evCriteria.setFilterOnReadableOrganization(true);
     List<ElementValue> evList = evCriteria.list();
-    if (evList.size() == 0)
+    if (evList.size() == 0) {
       return null;
+    }
 
     List<AccountingCombination> acList = evList.get(0)
         .getFinancialMgmtAccountingCombinationAccountList();
-    if (acList.size() == 0)
+    if (acList.size() == 0) {
       return null;
+    }
 
     return acList.get(0);
 

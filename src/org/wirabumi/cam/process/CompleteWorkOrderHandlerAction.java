@@ -16,7 +16,6 @@ import org.openbravo.dal.service.OBDal;
 import org.openbravo.database.ConnectionProvider;
 import org.openbravo.exception.NoConnectionAvailableException;
 import org.openbravo.model.ad.ui.Tab;
-import org.openbravo.model.financialmgmt.assetmgmt.Amortization;
 import org.openbravo.model.financialmgmt.assetmgmt.AmortizationLine;
 import org.openbravo.model.financialmgmt.assetmgmt.Asset;
 import org.openbravo.service.db.DalConnectionProvider;
@@ -35,20 +34,24 @@ public class CompleteWorkOrderHandlerAction extends DocumentRoutingHandlerAction
     for (int i = 0; i < recordId.size(); i++) {
       // loop for each asset
       String workorderID = recordId.get(i);
-      if (workorderID == null || workorderID.isEmpty())
+      if (workorderID == null || workorderID.isEmpty()) {
         throw new OBException("work order ID is null or work order is empty");
+      }
       WorkOrder wo = OBDal.getInstance().get(WorkOrder.class, workorderID);
-      if (wo == null)
+      if (wo == null) {
         throw new OBException(workorderID + " is not valid work order ID");
+      }
       Date woDate = wo.getStartingDate();
       List<WorkOrderAsset> woAssetList = wo.getCamWorkorderassetList();
-      if (woAssetList.size() == 0)
+      if (woAssetList.size() == 0) {
         continue;
+      }
       for (WorkOrderAsset woAsset : woAssetList) {
         if (doc_status_to.equalsIgnoreCase(complete)) {
           Asset asset = woAsset.getAsset();
-          if (asset == null)
+          if (asset == null) {
             continue;
+          }
 
           // implementation of asset movement
           if (woAsset.isAssetmovement()) {
@@ -60,8 +63,9 @@ public class CompleteWorkOrderHandlerAction extends DocumentRoutingHandlerAction
             // pindahkan next amortizationline
             for (AmortizationLine amortizationline : asset.getFinancialMgmtAmortizationLineList()) {
               Date accountingdate = amortizationline.getAmortization().getAccountingDate();
-              if (accountingdate.before(woDate))
+              if (accountingdate.before(woDate)) {
                 continue;
+              }
               amortizationline.setCostcenter(woAsset.getCostCenter());
               OBDal.getInstance().save(amortizationline);
             }
@@ -111,10 +115,19 @@ public class CompleteWorkOrderHandlerAction extends DocumentRoutingHandlerAction
 
           }
         } else if (doc_status_to.equalsIgnoreCase(reactive)) {
-          if (woAsset.isDisposed() || woAsset.isAssetmovement())
-            throw new OBException("Work Order " + woAsset.getWorkOrder().getIdentifier()
-                + " with asset " + woAsset.getAsset().getIdentifier()
-                + " is part of asset movement/disposal, then can not be reactivated");
+          if (woAsset.isDisposed() || woAsset.isAssetmovement()) {
+            String errorMessageWithAsset = " without asset";
+            if (woAsset.getAsset() != null) {
+              errorMessageWithAsset = " with asset " + woAsset.getAsset().getIdentifier();
+            }
+
+            String errorMessage = "Work Order " + woAsset.getWorkOrder().getIdentifier()
+                + errorMessageWithAsset
+                + " is part of asset movement/disposal, then can not be reactivated";
+
+            throw new OBException(errorMessage);
+          }
+
         }
       }
 
