@@ -1,84 +1,124 @@
 package org.wirabumi.cam.process;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
+import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Restrictions;
 import org.openbravo.base.util.ArgumentException;
+import org.openbravo.dal.service.OBCriteria;
 import org.openbravo.dal.service.OBDal;
 import org.openbravo.erpCommon.utility.OBError;
-import org.openbravo.model.common.currency.Currency;
+import org.openbravo.erpCommon.utility.OBErrorBuilder;
 import org.openbravo.model.common.enterprise.Organization;
 import org.openbravo.model.financialmgmt.assetmgmt.Amortization;
 import org.openbravo.model.financialmgmt.assetmgmt.AmortizationLine;
 import org.openbravo.model.financialmgmt.assetmgmt.Asset;
 import org.openbravo.scheduling.ProcessBundle;
 import org.openbravo.service.db.DalBaseProcess;
+import org.openbravo.service.db.DalConnectionProvider;
+import org.wirabumi.gen.oez.contract.Contract;
 
 public class AssetAmortizationProcess extends DalBaseProcess {
 
-  /**
-   * generate asset amortization plan according to asset's depreciation settings
-   */
   @Override
   protected void doExecute(ProcessBundle bundle) throws Exception {
 
     final Asset asset = getAsset(bundle);
-    if (asset == null) {
-      bundle.setResult(getObError(ResultType.Error, "can not find asset"));
-      return;
+    Contract.require(asset!=null, "can not find asset");
+    
+    if (!asset.isDepreciate()){
+    	bundle.setResult(OBErrorBuilder.buildMessage(null, "Warning", "asset is not set to be depreciated. No amortization generated for this asset."));
     }
-
+    
     Result validation = isAssetEligibleForDepreciation(asset);
-    if (validation.isError()) {
-      bundle.setResult(getObError(ResultType.Error, validation.getErrorMessage()));
-      return;
+    Contract.require(!validation.isError(), validation.getErrorMessage());
+    
+    AmortizationMethod amortizationMethod = gerAmortizationMethod(asset);
+    switch (amortizationMethod) {
+      case Linear:
+        runCoreModuleAssetAmortizationGenerationProcess(bundle);
+        break;
+        
+      case DoubleDeclining:
+        handleDoubleDecliningAmortizatio(asset);
+        break;
     }
+    
+    bundle.setResult(getObError(ResultType.Success, " Amortization(s) created successfully."));
 
-    if (isAssetDepreciationLinear(asset)) {
-      runCoreModuleAssetAmortizationGenerationProcess(bundle);
-      return;
-    }
+  }
 
+  private AmortizationMethod gerAmortizationMethod(Asset asset) {
+
+    if (isAssetDepreciationLinear(asset))
+      return AmortizationMethod.Linear;
+
+    return AmortizationMethod.DoubleDeclining;
+
+  }
+
+  private void handleDoubleDecliningAmortizatio(Asset asset) {
+    
+    //TODO implement this
+    /*
+     * 
+     * loop sd habis tahunnya:
+     *   tentukan tarifnya, jika tahun terakhir, maka tarif = sisa aset value dibagi dengan sisa bulan
+     *   loop sd end of year
+     *     buat amortization
+     *     consume asset value
+     * 
+     * commit
+     */
+    
     removePendingAmortizationLine(asset);
-
-    Map<Date, Amortization> unProcessedAmortization = getUnprocessedAmortizationHeader();
-    BigDecimal[] amortizationAmount = getAmortizationAmountPerSequence();
-
-    int processedAmortizationLine = getProcessedAmortizationCount(asset);
-
-    Calendar calendar = Calendar.getInstance();
-    calendar.setTime(asset.getDepreciationStartDate());
-    calendar.add(Calendar.MONTH, processedAmortizationLine + 1);
-
-    for (int seqNo = 0; seqNo < amortizationAmount.length; seqNo++) {
-
-      Date amortizationStartDate = calendar.getTime();
+    OBDal.getInstance().refresh(asset);
+    
+    Map<Date, Amortization> unProcessedAmortization = getUnprocessedAmortizationHeader(asset.getOrganization());
+    
+    int yearLifeSpan = asset.getUsableLifeYears().intValue();
+    BigDecimal annualDepreciation = asset.getAnnualDepreciation().divide(new BigDecimal(100), 2, RoundingMode.HALF_DOWN);
+    BigDecimal assetValue = asset.getAssetValue();
+    Calendar amortizationDate = Calendar.getInstance();
+    amortizationDate.setTime(asset.getDepreciationStartDate());
+    
+    for (int yearTh=1; yearTh<=yearLifeSpan-1; yearTh++){
+      BigDecimal tarif = 
+          assetValue
+            .divide(annualDepreciation, 2, RoundingMode.HALF_DOWN)
+            .divide(new BigDecimal(12), 2, RoundingMode.HALF_DOWN);
+      
+      
+      Date amortizationStartDate = amortizationDate.getTime();
 
       Amortization amortization = null;
       if (unProcessedAmortization.containsKey(amortizationStartDate)) {
         amortization = unProcessedAmortization.get(amortizationStartDate);
       } else {
         amortization = createAmortizationHeader(asset.getOrganization(), amortizationStartDate);
+        unProcessedAmortization.put(amortizationStartDate, amortization);
       }
 
-      BigDecimal tarif = amortizationAmount[seqNo];
       AmortizationLine amortizationLine = createAmortizationLine(asset, amortization, tarif);
 
       OBDal.getInstance().save(amortizationLine);
-
+      
     }
-
+    
     OBDal.getInstance().commitAndClose();
 
-    bundle.setResult(getObError(ResultType.Success, " Amortization(s) created successfully."));
-
   }
-
+  
   private AmortizationLine createAmortizationLine(Asset asset, Amortization amortization,
       BigDecimal tarif) {
     // TODO Auto-generated method stub
@@ -91,28 +131,17 @@ public class AssetAmortizationProcess extends DalBaseProcess {
     return null;
   }
 
-  private int getProcessedAmortizationCount(Asset asset) {
-    int result = 0;
-
-    for (AmortizationLine amortization : asset.getFinancialMgmtAmortizationLineList()) {
-      if (amortization.getAmortization().isProcessed()) {
-        continue;
-      }
-
-      result++;
-    }
-
+  private Map<Date, Amortization> getUnprocessedAmortizationHeader(Organization organization) {
+    OBCriteria<Amortization> criteria = OBDal.getInstance().createCriteria(Amortization.class);
+    criteria.add(Restrictions.eq(Amortization.PROPERTY_ORGANIZATION, organization));
+    criteria.add(Restrictions.eq(Amortization.PROPERTY_PROCESSED, false));
+    
+    Map<Date, Amortization> result = new HashMap<Date, Amortization>();
+    criteria.list().stream().forEach(amortization -> {
+      result.put(amortization.getAccountingDate(), amortization);
+    });
+    
     return result;
-  }
-
-  private BigDecimal[] getAmortizationAmountPerSequence() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  private Map<Date, Amortization> getUnprocessedAmortizationHeader() {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   private boolean isAssetDepreciationLinear(Asset asset) {
@@ -215,42 +244,29 @@ public class AssetAmortizationProcess extends DalBaseProcess {
 
   }
 
-  private void removePendingAmortizationLine(Asset asset) throws SQLException {
+  private void removePendingAmortizationLine(Asset asset) {
+    
+    List<String> amortizationLineTobeDeleted = asset.getFinancialMgmtAmortizationLineList()
+      .stream()
+      .filter(x -> !x.getAmortization().isProcessed())
+      .map(x -> x.getId())
+      .collect(Collectors.toList());
+    
+    String sqlDeleteStatement = String.format(
+        "delete from a_amortizationline where a_amortizationline_id in  (%s)",
+        amortizationLineTobeDeleted.stream()
+            .collect(Collectors.joining(", ")));
 
-    for (AmortizationLine amortization : asset.getFinancialMgmtAmortizationLineList()) {
-      if (amortization.getAmortization().isProcessed()) {
-        continue;
-      }
+    try {
+      Connection connection = new DalConnectionProvider().getConnection();
+      PreparedStatement ps = connection.prepareStatement(sqlDeleteStatement);
 
-      OBDal.getInstance().remove(amortization);
-    }
+      ps.execute();
+      
+      connection.commit();
 
-    OBDal.getInstance().flush();
-    OBDal.getInstance().getConnection().commit();
-    OBDal.getInstance().refresh(asset);
-  }
-
-  private class AssetVo {
-    Currency currency;
-    DepreciationMethod method;
-    DepreciationCalcType calculationType;
-    DepreciationPeriod period;
-    BigDecimal annualPercentage;
-    int uselifeyear;
-    int uselifemonth;
-    Date startDepreciationDate;
-
-    public AssetVo(Asset asset) {
-      currency = asset.getCurrency();
-      method = DepreciationMethod.valueOf(asset.getDepreciationType());
-      calculationType = DepreciationCalcType.valueOf(asset.getCalculateType());
-      period = DepreciationPeriod.valueOf(asset.getAmortize());
-      annualPercentage = asset.getAnnualDepreciation();
-      uselifeyear = asset.getUsableLifeYears() != null ? asset.getUsableLifeYears().intValue() : 0;
-      uselifemonth = asset.getUsableLifeMonths() != null ? asset.getUsableLifeMonths().intValue()
-          : 0;
-      startDepreciationDate = asset.getDepreciationStartDate();
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
-
 }
